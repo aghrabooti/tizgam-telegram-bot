@@ -1,8 +1,8 @@
 """تنظیمات اجرایی ربات (environment-driven)
 ==========================================
 
-این فایل «چگونگی اجرا» را کنترل می‌کند (توکن، مدیران، دیتابیس، سطح لاگ)
-و با ``bot/config/content.py`` (محتوای قابل‌تنظیم) متفاوت است.
+این فایل «چگونگی اجرا» را کنترل می‌کند (توکن، مدیران، دیتابیس، لاگ) و با
+``bot/config/content.py`` (محتوای قابل‌تنظیم) متفاوت است.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ class Settings:
     bot_token: str
     admin_ids: frozenset[int]
     database_path: str
+    log_file: str
     log_level: str = "INFO"
 
 
@@ -51,14 +52,14 @@ def get_settings() -> Settings:
         )
 
     project_root = Path(__file__).resolve().parent.parent.parent
-    database_path = (
-        os.getenv("DATABASE_PATH", "").strip()
-        or str(project_root / "data" / "tizgam.db")
-    )
+    data_dir = project_root / "data"
 
     return Settings(
         bot_token=bot_token,
         admin_ids=_parse_admin_ids(os.getenv("ADMIN_IDS", "")),
-        database_path=database_path,
+        database_path=(
+            os.getenv("DATABASE_PATH", "").strip() or str(data_dir / "tizgam.db")
+        ),
+        log_file=(os.getenv("LOG_FILE", "").strip() or str(data_dir / "bot.log")),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
     )

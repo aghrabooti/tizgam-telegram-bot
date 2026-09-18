@@ -9,6 +9,7 @@ from typing import Optional
 from telegram import (
     CallbackQuery,
     Chat,
+    Contact,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
@@ -126,3 +127,21 @@ def url_buttons(markup: InlineKeyboardMarkup) -> list[tuple[str, str]]:
 def main_menu_callbacks() -> list[str]:
     """callbackهای مورد انتظار منوی اصلی (بر اساس محتوا)."""
     return [item.callback for item in content.MAIN_MENU]
+
+
+async def share_contact(
+    app, bot, user=USER, phone: str = "+989121234567"
+) -> None:
+    """شبیه‌سازی فشردن دکمه‌ی «ارسال شماره تماس» (اشتراک مخاطب تلگرام)."""
+    contact = Contact(
+        phone_number=phone, first_name=user.first_name, user_id=user.id
+    )
+    message = Message(
+        message_id=_next_id(),
+        date=datetime.now(tz=timezone.utc),
+        chat=CHAT,
+        from_user=user,
+        contact=contact,
+    )
+    message.set_bot(bot)
+    await app.process_update(Update(update_id=_next_id(), message=message))

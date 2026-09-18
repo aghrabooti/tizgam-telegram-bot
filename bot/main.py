@@ -30,6 +30,7 @@ from bot.config.settings import get_settings  # noqa: E402
 from bot.handlers import register_handlers  # noqa: E402
 from bot.services.content_manager import ContentManager  # noqa: E402
 from bot.services.database import init_db  # noqa: E402
+from bot.utils.logging_setup import setup_logging  # noqa: E402
 
 logger = logging.getLogger("bot")
 
@@ -50,10 +51,8 @@ def create_application() -> Application:
 def main() -> None:
     """اجرای ربات با long-polling."""
     settings = get_settings()
-    logging.basicConfig(
-        level=getattr(logging, settings.log_level, logging.INFO),
-        format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    )
+    # لاگ هم‌زمان روی کنسول و فایل چرخشی (data/bot.log)
+    setup_logging(level=settings.log_level, log_file=settings.log_file)
 
     logger.info("راه‌اندازی ربات تیزگام (نسخه %s) ...", __version__)
     application = create_application()

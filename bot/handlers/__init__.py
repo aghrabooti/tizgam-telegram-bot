@@ -19,6 +19,7 @@ from bot.handlers import (
     errors,
     exams,
     media,
+    phone,
     products,
     purchase,
     start,
@@ -36,6 +37,7 @@ _MODULES = (
     classes,
     exams,
     media,
+    phone,
     admin,
 )
 

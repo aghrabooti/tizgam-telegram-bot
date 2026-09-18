@@ -32,6 +32,7 @@ from tests.helpers import (
     main_menu_callbacks,
     send_command,
     send_text,
+    share_contact,
     tap,
     url_buttons,
 )
@@ -42,19 +43,31 @@ from tests.helpers import (
 
 
 async def test_start_shows_main_menu(bot_app):
+    """/start → اول درخواست شماره → بعد از اشتراک مخاطب، منوی اصلی."""
     app, bot = bot_app
     await send_command(app, bot, "/start")
 
-    sent = last_send(bot)
-    assert sent["text"] == content.WELCOME_TEXT
-    assert sent["reply_markup"] is not None
-    assert callbacks(sent["reply_markup"]) == main_menu_callbacks()
-    assert len(main_menu_callbacks()) == 9
+    # مرحله ۱: درخواست شماره با دکمه‌ی اشتراک مخاطب
+    request = last_send(bot)
+    assert request["text"] == content.PHONE_REQUEST_TEXT
+    share_btn = request["reply_markup"].keyboard[0][0]
+    assert share_btn.request_contact is True
+
+    # مرحله ۲: کاربر مخاطبش را می‌فرستد → تشکر + منوی اصلی
+    await share_contact(app, bot)
+    sends = bot.send_message.await_args_list
+    thanks, menu = sends[-2].kwargs, sends[-1].kwargs
+    assert "ثبت شد" in thanks["text"]
+    assert menu["text"] == content.WELCOME_TEXT
+    assert callbacks(menu["reply_markup"]) == main_menu_callbacks()
 
 
 async def test_start_from_deep_state_resets_to_main_menu(bot_app):
     """/start در هر مرحله‌ای → reset کامل و بازگشت به منوی اصلی."""
     app, bot = bot_app
+    # آنبورد کاربر (شماره می‌دهد) تا /start بعدی مستقیم منو نشان دهد
+    await send_command(app, bot, "/start")
+    await share_contact(app, bot)
     # کاربر را تا عمیق‌ترین مرحله می‌بریم
     await tap(app, bot, "cls")
     await tap(app, bot, "cls:g:6")
@@ -480,13 +493,8 @@ async def test_all_screens_have_navigation(bot_app):
 
 
 async def test_button_styles(bot_app):
-    """دکمه‌های اقدام سبز، خطر قرمز و منو/ناوبری آبی هستند (نه شیشه‌ای)."""
+    """دکمه‌های اقدام سبز و دکمه‌ی خطر قرمز هستند؛ ناوبری بدون استایل."""
     app, bot = bot_app
-    await send_command(app, bot, "/start")
-
-    # منوی اصلی → آبی (نه شیشه‌ای شفاف روی پیام رنگی)
-    markup = last_send(bot)["reply_markup"]
-    assert all(b.style == "primary" for b in buttons(markup))
 
     # لینک آپارات در نمونه کلاس → سبز
     await tap(app, bot, "cls:g:6:math")
@@ -494,12 +502,7 @@ async def test_button_styles(bot_app):
     url_btn = next(b for b in buttons(markup) if b.url)
     assert url_btn.style == "success"
     back_btn = next(b for b in buttons(markup) if b.callback_data == "cls:g:6")
-    assert back_btn.style == "primary"  # ناوبری = آبی، نه شیشه‌ای/شفاف
-
-    # گفت‌وگو با پشتیبانی → لینک سبز
-    await tap(app, bot, "sup:tg")
-    markup = last_edit(bot)["reply_markup"]
-    assert next(b for b in buttons(markup) if b.url).style == "success"
+    assert back_btn.style is None  # ناوبری = رنگ پیش‌فرض
 
     # لینک سفارش محصول → سبز
     await tap(app, bot, "prod:g:6:tezpack")
@@ -512,7 +515,7 @@ async def test_button_styles(bot_app):
     danger = next(b for b in buttons(markup) if b.callback_data == "adm:stats:rst:yes")
     assert danger.style == "danger"
     cancel = next(b for b in buttons(markup) if b.callback_data == "adm:stats")
-    assert cancel.style == "primary"
+    assert cancel.style is None
 
 
 # ---------------------------------------------------------------------------
@@ -525,13 +528,10 @@ def test_button_style_compat_supported():
     from bot.keyboards.common import SUPPORTS_BUTTON_STYLES, button
 
     b = button("تست", callback_data="x", style="success")
-    default = button("منو", callback_data="main")
     if SUPPORTS_BUTTON_STYLES:
         assert b.style == "success"
-        assert default.style == "primary"
     else:  # محیط تست بدون پشتیبانی
         assert b.style is None
-        assert default.style is None
 
 
 def test_button_drops_style_when_unsupported(monkeypatch):

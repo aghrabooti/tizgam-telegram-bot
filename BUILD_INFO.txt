@@ -1,8 +1,8 @@
 Tizgam Telegram Bot - Build Info
 ================================
-Build time : 2026-09-18 11:51
-Files      : 43
-Admin panel: YES
-Verify     : this archive must contain bot/handlers/admin.py,
-             bot/services/analytics.py and tests/test_admin.py.
-             If they are missing, you downloaded a stale copy!
+Build time : 2026-09-18 21:04
+Files      : 49
+Features   : admin panel, button styles, phone capture, file logging,
+             admin exports (users CSV, full log, DB backup)
+Verify     : must contain bot/handlers/admin.py, bot/handlers/phone.py,
+             bot/utils/logging_setup.py and deploy/tizgam-bot.service.

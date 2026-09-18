@@ -1,12 +1,15 @@
 """لایه‌ی ذخیره‌سازی (SQLite)
 ============================
 
-دو کاربرد:
-- آمار ربات (کاربران + رویدادها)
+کاربردها:
+- آمار ربات (کاربران + رویدادها + شماره‌های تماس)
 - مقادیر ویرایش‌شده‌ی محتوا توسط مدیر (content overrides)
 
 از sqlite3 استاندارد استفاده می‌شود (بدون وابستگی جدید). چون حجم نوشتن
 کم است، یک اتصال با قفل thread-safe کفایت می‌کند.
+
+برای دیتابیس‌های قدیمی، مهاجرت‌های سبک (ALTER TABLE) به‌صورت خودکار
+هنگام باز شدن اعمال می‌شوند.
 """
 
 from __future__ import annotations
@@ -18,11 +21,14 @@ from typing import Any, Iterable, Optional
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
-    user_id    INTEGER PRIMARY KEY,
-    first_name TEXT,
-    username   TEXT,
-    joined_at  TEXT,
-    last_seen  TEXT
+    user_id          INTEGER PRIMARY KEY,
+    first_name       TEXT,
+    username         TEXT,
+    joined_at        TEXT,
+    last_seen        TEXT,
+    phone            TEXT,
+    phone_source     TEXT,
+    phone_skipped_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS events (
@@ -43,6 +49,17 @@ CREATE TABLE IF NOT EXISTS content_overrides (
 );
 """
 
+# مهاجرت‌های دیتابیس‌های قدیمی (قبل از افزودن ستون‌های شماره تماس)
+_MIGRATIONS: tuple[tuple[str, str, str], ...] = (
+    ("users", "phone", "ALTER TABLE users ADD COLUMN phone TEXT"),
+    ("users", "phone_source", "ALTER TABLE users ADD COLUMN phone_source TEXT"),
+    (
+        "users",
+        "phone_skipped_at",
+        "ALTER TABLE users ADD COLUMN phone_skipped_at TEXT",
+    ),
+)
+
 
 class Database:
     """پوشش کوچک و thread-safe روی sqlite3."""
@@ -55,7 +72,17 @@ class Database:
         with self._lock:
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.executescript(_SCHEMA)
+            self._migrate()
             self._conn.commit()
+
+    def _migrate(self) -> None:
+        """افزودن ستون‌های تازه به دیتابیس‌های قدیمی (اگر نباشند)."""
+        for table, column, ddl in _MIGRATIONS:
+            columns = {
+                row[1] for row in self._conn.execute(f"PRAGMA table_info({table})")
+            }
+            if column not in columns:
+                self._conn.execute(ddl)
 
     def execute(self, sql: str, params: Iterable[Any] = ()) -> None:
         """اجرای یک دستور نوشتنی (INSERT/UPDATE/DELETE) با commit."""

@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import logging
 from datetime import datetime
 from typing import Optional
@@ -167,3 +169,76 @@ def user_count() -> int:
 def find_user(user_id: int) -> Optional[dict]:
     row = get_db().query_one("SELECT * FROM users WHERE user_id = ?", (user_id,))
     return dict(row) if row else None
+
+
+# ---------------------------------------------------------------------------
+# شماره‌ی تماس کاربران
+# ---------------------------------------------------------------------------
+
+
+def needs_phone(user_id: int) -> bool:
+    """آیا این کاربر باید شماره‌ی تماس بدهد؟ (ثبت‌شده ولی بدون شماره و رد نکرده)"""
+    row = get_db().query_one(
+        "SELECT phone, phone_skipped_at FROM users WHERE user_id = ?", (user_id,)
+    )
+    return row is not None and row["phone"] is None and row["phone_skipped_at"] is None
+
+
+def set_phone(user_id: int, phone: str, source: str) -> None:
+    """ذخیره‌ی شماره‌ی تماس کاربر — غیرمهلک."""
+    try:
+        get_db().execute(
+            "UPDATE users SET phone = ?, phone_source = ? WHERE user_id = ?",
+            (phone, source, user_id),
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("ثبت شماره تماس ناموفق بود")
+
+
+def set_phone_skipped(user_id: int) -> None:
+    """ثبت اینکه کاربر دادن شماره را رد کرد (دیگر پرسیده نمی‌شود)."""
+    try:
+        get_db().execute(
+            "UPDATE users SET phone_skipped_at = ? WHERE user_id = ?",
+            (_now(), user_id),
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("ثبت رد کردن شماره ناموفق بود")
+
+
+def users_with_phone_count() -> int:
+    """تعداد کاربرانی که شماره تماس داده‌اند."""
+    row = get_db().query_one("SELECT COUNT(*) FROM users WHERE phone IS NOT NULL")
+    return int(row[0]) if row else 0
+
+
+def recent_users(limit: int = 10) -> list[dict]:
+    """آخرین کاربران (جدیدترین اول)."""
+    rows = get_db().query_all(
+        """
+        SELECT user_id, first_name, username, phone, joined_at
+        FROM users ORDER BY joined_at DESC, user_id DESC LIMIT ?
+        """,
+        (limit,),
+    )
+    return [dict(r) for r in rows]
+
+
+def users_csv() -> str:
+    """خروجی CSV کامل کاربران (سازگار با Excel فارسی)."""
+    rows = get_db().query_all(
+        """
+        SELECT user_id, first_name, username, phone, phone_source,
+               phone_skipped_at, joined_at, last_seen
+        FROM users ORDER BY joined_at DESC, user_id DESC
+        """
+    )
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(
+        ["user_id", "first_name", "username", "phone", "phone_source",
+         "phone_skipped_at", "joined_at", "last_seen"]
+    )
+    for r in rows:
+        writer.writerow([r[k] if r[k] is not None else "" for k in r.keys()])
+    return buf.getvalue()
