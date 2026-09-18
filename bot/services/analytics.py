@@ -6,13 +6,18 @@
 - ``screen`` → هر بار باز شدن یک صفحه با دکمه‌ی inline (نام = callback data)
 
 نکته‌ی مهم: تلگرام «کلیک روی دکمه‌های URL» (لینک خارجی) را به ربات گزارش
-نمی‌کند؛ معنای عملی «باز شدن لینک ویدیو/سایت» همین تعداد نمایش صفحه‌ی
+نمی‌دهد؛ معنای عملی «باز شدن لینک ویدیو/سایت» همین تعداد نمایش صفحه‌ی
 محتوی آن لینک است. برای شمارش دقیق کلیک باید لینک‌ها از طریق یک سرویس
 ریدایرکت (مثلاً tizgam.ir/r/…) عبور داده شوند.
+
+نکته‌ی معماری: همه‌ی «نوشتن‌ها» غیرمهلک هستند؛ یعنی اگر دیتابیس دچار
+مشکل شود، هیچ‌وقت ناوبری و تجربه‌ی کاربر خراب نمی‌شود و فقط در لاگ
+خطا ثبت می‌شود.
 """
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Optional
 
@@ -20,6 +25,8 @@ from telegram import User
 
 from bot.config import content
 from bot.services.database import get_db
+
+logger = logging.getLogger(__name__)
 
 
 def _now() -> str:
@@ -31,37 +38,48 @@ def _today() -> str:
     return datetime.now().date().isoformat()
 
 
-def upsert_user(user: User) -> None:
-    """ثبت/به‌روزرسانی کاربر (نام و آخرین بازدید)."""
+def _log_event(user_id: int, event_type: str, name: str = "") -> None:
     get_db().execute(
-        """
-        INSERT INTO users (user_id, first_name, username, joined_at, last_seen)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            first_name = excluded.first_name,
-            username   = excluded.username,
-            last_seen  = excluded.last_seen
-        """,
-        (user.id, user.first_name, user.username, _now(), _now()),
+        "INSERT INTO events (ts, user_id, type, name) VALUES (?, ?, ?, ?)",
+        (_now(), user_id, event_type, name),
     )
+
+
+def upsert_user(user: User) -> None:
+    """ثبت/به‌روزرسانی کاربر (نام و آخرین بازدید) — غیرمهلک."""
+    try:
+        get_db().execute(
+            """
+            INSERT INTO users (user_id, first_name, username, joined_at, last_seen)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                first_name = excluded.first_name,
+                username   = excluded.username,
+                last_seen  = excluded.last_seen
+            """,
+            (user.id, user.first_name, user.username, _now(), _now()),
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("ثبت/به‌روزرسانی کاربر ناموفق بود")
 
 
 def log_start(user_id: int) -> None:
-    get_db().execute(
-        "INSERT INTO events (ts, user_id, type, name) VALUES (?, ?, 'start', '')",
-        (_now(), user_id),
-    )
+    """ثبت رویداد /start — غیرمهلک."""
+    try:
+        _log_event(user_id, "start")
+    except Exception:  # noqa: BLE001
+        logger.exception("ثبت رویداد start ناموفق بود")
 
 
 def log_screen(user_id: int, name: str) -> None:
-    """ثبت نمایش یک صفحه (ناوبری با دکمه‌ی inline)."""
-    get_db().execute(
-        "INSERT INTO events (ts, user_id, type, name) VALUES (?, ?, 'screen', ?)",
-        (_now(), user_id, name),
-    )
-    get_db().execute(
-        "UPDATE users SET last_seen = ? WHERE user_id = ?", (_now(), user_id)
-    )
+    """ثبت نمایش یک صفحه (ناوبری با دکمه‌ی inline) — غیرمهلک."""
+    try:
+        _log_event(user_id, "screen", name)
+        get_db().execute(
+            "UPDATE users SET last_seen = ? WHERE user_id = ?", (_now(), user_id)
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("ثبت رویداد نمایش صفحه ناموفق بود")
 
 
 def summary() -> dict[str, int]:
