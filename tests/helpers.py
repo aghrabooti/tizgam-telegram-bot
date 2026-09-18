@@ -24,18 +24,20 @@ _IDS = itertools.count(1000)
 
 CHAT = Chat(id=555, type="private")
 USER = User(id=777, first_name="Tester", is_bot=False)
+# کاربر غیرمدیر (در ADMIN_IDS نیست)
+NON_ADMIN = User(id=888, first_name="Outsider", is_bot=False)
 
 
 def _next_id() -> int:
     return next(_IDS)
 
 
-def _message(bot, text: str, entities: Optional[list[MessageEntity]] = None) -> Message:
+def _message(bot, text: str, user: User, entities: Optional[list[MessageEntity]] = None) -> Message:
     message = Message(
         message_id=_next_id(),
         date=datetime.now(tz=timezone.utc),
         chat=CHAT,
-        from_user=USER,
+        from_user=user,
         text=text,
         entities=entities or [],
     )
@@ -49,24 +51,27 @@ def _command_entities(text: str) -> list[MessageEntity]:
     return [MessageEntity(type=MessageEntityType.BOT_COMMAND, offset=0, length=len(command))]
 
 
-async def send_command(app, bot, text: str) -> None:
+async def send_command(app, bot, text: str, user: User = USER) -> None:
     """ارسال یک دستور (مثل /start) به ربات."""
-    update = Update(update_id=_next_id(), message=_message(bot, text, _command_entities(text)))
+    update = Update(
+        update_id=_next_id(),
+        message=_message(bot, text, user, _command_entities(text)),
+    )
     await app.process_update(update)
 
 
-async def send_text(app, bot, text: str) -> None:
+async def send_text(app, bot, text: str, user: User = USER) -> None:
     """ارسال یک پیام متنی معمولی به ربات."""
-    update = Update(update_id=_next_id(), message=_message(bot, text))
+    update = Update(update_id=_next_id(), message=_message(bot, text, user))
     await app.process_update(update)
 
 
-async def tap(app, bot, callback_data: str) -> None:
+async def tap(app, bot, callback_data: str, user: User = USER) -> None:
     """شبیه‌سازی فشردن یک دکمه‌ی inline با callback_data داده‌شده."""
-    message = _message(bot, "menu")
+    message = _message(bot, "menu", user)
     query = CallbackQuery(
         id=str(_next_id()),
-        from_user=USER,
+        from_user=user,
         chat_instance="test",
         data=callback_data,
         message=message,
