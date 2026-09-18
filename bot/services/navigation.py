@@ -72,10 +72,18 @@ async def render_screen(
         return
 
     if answer_callback:
-        await query.answer()
+        try:
+            await query.answer()
+        except TelegramError as exc:
+            # مثلاً دوباره‌کلیک یا گذشته‌شدن مهلت پاسخ؛ نباید ناوبری را بشکند
+            logger.debug("پاسخ به callback query ناموفق بود: %s", exc)
 
     # ثبت آمار: هر ناوبری با دکمه‌ی inline یک «نمایش صفحه» است
-    analytics.log_screen(query.from_user.id, query.data)
+    # (خطای دیتابیس هرگز نباید ناوبری کاربر را متوقف کند)
+    try:
+        analytics.log_screen(query.from_user.id, query.data)
+    except Exception:  # noqa: BLE001
+        logger.exception("ثبت آمار نمایش صفحه ناموفق بود")
 
     try:
         await query.edit_message_text(
