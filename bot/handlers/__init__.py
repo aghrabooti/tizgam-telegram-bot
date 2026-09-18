@@ -2,9 +2,10 @@
 
 ترتیب ثبت مهم است:
 1. هندلرهای بخش‌ها (هر کدام pattern اختصاصی خودش را دارد).
-2. در پایان ``errors.register_error_handlers`` که هندلرهای «گیرنده‌ی
-   باقی‌مانده» (callback ناشناخته، متن نامفهوم و error handler) را
-   اضافه می‌کند.
+2. پنل مدیریت (فرمان‌ها + callback های adm:* + دریافت مقدار جدید مدیر).
+3. در پایان ``errors.register_error_handlers`` که هندلرهای «گیرنده‌ی
+   باقی‌مانده» (callback ناشناخته، متن نامفهوم و error handler) را اضافه
+   می‌کند.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from telegram.ext import Application
 
 from bot.handlers import (
     about,
+    admin,
     classes,
     errors,
     exams,
@@ -34,6 +36,7 @@ _MODULES = (
     classes,
     exams,
     media,
+    admin,
 )
 
 
