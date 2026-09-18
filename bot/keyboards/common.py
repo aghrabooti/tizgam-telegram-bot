@@ -7,12 +7,36 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Callable, Optional, Sequence
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.config import content
 from bot.constants import CB_MAIN
+
+# آیا نسخه‌ی نصب‌شده‌ی python-telegram-bot از «استایل دکمه» (Bot API 9.4)
+# پشتیبانی می‌کند؟ در نسخه‌های قدیمی‌تر این پارامتر وجود ندارد و اگر مستقیم
+# پاس داده شود، ساخت دکمه با TypeError شکست می‌خورد.
+try:
+    SUPPORTS_BUTTON_STYLES = (
+        "style" in inspect.signature(InlineKeyboardButton.__init__).parameters
+    )
+except (TypeError, ValueError):  # pragma: no cover - نسخه‌های بسیار قدیمی
+    SUPPORTS_BUTTON_STYLES = False
+
+
+def button(
+    text: str, *, style: Optional[str] = None, **kwargs
+) -> InlineKeyboardButton:
+    """ساخت دکمه‌ی inline با پشتیبانی خودکار از استایل (Bot API 9.4+).
+
+    اگر کتابخانه‌ی نصب‌شده ``style`` را نشناسد، دکمه بدون استایل (رنگ
+    پیش‌فرض آبی) ساخته می‌شود تا ربات روی هر محیطی بدون خطا کار کند.
+    """
+    if style is not None and SUPPORTS_BUTTON_STYLES:
+        return InlineKeyboardButton(text, style=style, **kwargs)
+    return InlineKeyboardButton(text, **kwargs)
 
 
 def back_button(callback_data: str) -> InlineKeyboardButton:
