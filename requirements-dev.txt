@@ -1,0 +1,4 @@
+# وابستگی‌های توسعه و تست
+-r requirements.txt
+pytest==8.3.5
+pytest-asyncio==1.4.0
