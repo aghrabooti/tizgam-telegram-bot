@@ -1,0 +1,43 @@
+# فایل سرویس systemd برای اجرای همیشگی ربات (لینوکس)
+#
+# نصب (مسیرها را با مسیر واقعی پروژه روی سرور عوض کنید):
+#   sudo cp deploy/tizgam-bot.service /etc/systemd/system/tizgam-bot.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now tizgam-bot
+#
+# وضعیت / لاگ سرویس:
+#   systemctl status tizgam-bot
+#   journalctl -u tizgam-bot -f
+#
+# بعد از هر به‌روزرسانی کد:
+#   sudo systemctl restart tizgam-bot
+
+[Unit]
+Description=Tizgam Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# کاربری که پروژه را مالک است (بهتر است root نباشد)
+User=tizgam
+Group=tizgam
+WorkingDirectory=/opt/tizgam-telegram-bot
+# اجرا با محیط مجازی پروژه
+ExecStart=/opt/tizgam-telegram-bot/.venv/bin/python -m bot
+Restart=always
+RestartSec=5
+# ری‌استارت بی‌نهایت (بدون توقف پس از شکست‌های پیاپی)
+StartLimitIntervalSec=0
+# ری‌استارت خودکار حتی اگر پروسه هنگ کند
+WatchdogSec=300
+# فایل .env از WorkingDirectory خوانده می‌شود
+
+# سخت‌گیری امنیتی
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
