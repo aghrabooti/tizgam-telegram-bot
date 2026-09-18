@@ -48,8 +48,13 @@ class MenuItem:
 
 @dataclass(frozen=True)
 class LinkItem:
-    """یک آیتم لینک‌دار (ویدیو، فایل، صفحه وب و ...) درون یک بخش محتوایی."""
+    """یک آیتم لینک‌دار (ویدیو، فایل، صفحه وب و ...) درون یک بخش محتوایی.
 
+    ``id`` شناسه‌ی پایدار آیتم است و برای ویرایش از پنل مدیریت استفاده
+    می‌شود؛ هنگام افزودن آیتم جدید یک id یکتا (انگلیسی/کپیتال کوچک) بدهید.
+    """
+
+    id: str
     label: str
     url: str
 
@@ -183,8 +188,8 @@ ABOUT_SECTION = ContentSection(
         "برای اطلاعات بیشتر، وبسایت ما را ببینید:"
     ),
     items=(
-        LinkItem("🌐 وبسایت رسمی تیزگام", "https://tizgam.ir"),
-        # LinkItem("🎥 ویدیوی معرفی موسسه", "https://www.aparat.com/tizgam"),
+        LinkItem(id="website", label="🌐 وبسایت رسمی تیزگام", url="https://tizgam.ir"),
+        # LinkItem(id="intro-video", label="🎥 ویدیوی معرفی موسسه", url="https://www.aparat.com/tizgam"),
     ),
 )
 
@@ -199,9 +204,9 @@ ACCEPTANCE_VIDEOS_SECTION = ContentSection(
         " هم ممکن است! 🏆"
     ),
     items=(
-        LinkItem("🏆 قبولی‌های تیزهوشان ۱۴۰۳", "https://www.aparat.com/tizgam"),
-        LinkItem("🥇 رتبه‌های برتر پایه نهم", "https://www.aparat.com/tizgam"),
-        LinkItem("🎖 ایشان هم قبول شدند!", "https://www.aparat.com/tizgam"),
+        LinkItem(id="top-1403", label="🏆 قبولی‌های تیزهوشان ۱۴۰۳", url="https://www.aparat.com/tizgam"),
+        LinkItem(id="grade9-top", label="🥇 رتبه‌های برتر پایه نهم", url="https://www.aparat.com/tizgam"),
+        LinkItem(id="others", label="🎖 ایشان هم قبول شدند!", url="https://www.aparat.com/tizgam"),
     ),
 )
 
@@ -212,8 +217,8 @@ SATISFACTION_VIDEOS_SECTION = ContentSection(
         " می‌گویند؟ 👇"
     ),
     items=(
-        LinkItem("👨‍👩‍👦 رضایت والدین", "https://www.aparat.com/tizgam"),
-        LinkItem("🧑‍🎓 رضایت دانش‌آموزان", "https://www.aparat.com/tizgam"),
+        LinkItem(id="parents", label="👨‍👩‍👦 رضایت والدین", url="https://www.aparat.com/tizgam"),
+        LinkItem(id="students", label="🧑‍🎓 رضایت دانش‌آموزان", url="https://www.aparat.com/tizgam"),
     ),
 )
 
@@ -354,8 +359,8 @@ PURCHASE_SECTION = ContentSection(
         " کارشناسان ما برای هماهنگی ارسال با شما تماس می‌گیرند. 🤝"
     ),
     items=(
-        LinkItem("🛒 خرید / ثبت سفارش تیزپک", "https://tizgam.ir/order/tezpack"),
-        LinkItem("💬 سوال قبل از خرید؟ پشتیبانی", "https://t.me/tizgam_support"),
+        LinkItem(id="order", label="🛒 خرید / ثبت سفارش تیزپک", url="https://tizgam.ir/order/tezpack"),
+        LinkItem(id="support", label="💬 سوال قبل از خرید؟ پشتیبانی", url="https://t.me/tizgam_support"),
     ),
 )
 
@@ -390,7 +395,7 @@ EXAMS_INTRO_TEXT = (
 
 EXAMS_GRADE_TEXT = (
     "📝 <b>نمونه آزمون‌های {grade_title}</b>\n\n"
-    "آزمون مورد نظر را برای مشاهده انتخاب کنید:"
+    "آزمون مورد نظر را برای ٩نید:"
 )
 
 EXAM_DETAIL_TEXT = (
@@ -436,12 +441,12 @@ MEDIA_SECTION = ContentSection(
         "ما را در شبکه‌های اجتماعی دنبال کنید:"
     ),
     items=(
-        LinkItem("📨 کانال تلگرام", "https://t.me/tizgam"),
-        LinkItem("📸 پیج اینستاگرام", "https://instagram.com/tizgam"),
-        LinkItem("🟣 کانال بله", "https://ble.ir/tizgam"),
-        LinkItem("🔴 کانال روبیکا", "https://rubika.ir/tizgam"),
-        LinkItem("🟢 کانال ایتا", "https://eitaa.com/tizgam"),
-        LinkItem("🌍 سایت", "https://tizgam.ir"),
+        LinkItem(id="telegram", label="📨 کانال تلگرام", url="https://t.me/tizgam"),
+        LinkItem(id="instagram", label="📸 پیج اینستاگرام", url="https://instagram.com/tizgam"),
+        LinkItem(id="bale", label="🟣 کانال بله", url="https://ble.ir/tizgam"),
+        LinkItem(id="rubika", label="🔴 کانال روبیکا", url="https://rubika.ir/tizgam"),
+        LinkItem(id="eitaa", label="🟢 کانال ایتا", url="https://eitaa.com/tizgam"),
+        LinkItem(id="website", label="🌍 سایت", url="https://tizgam.ir"),
     ),
 )
 
