@@ -1,0 +1,15 @@
+[project]
+name = "tizgam-telegram-bot"
+version = "1.0.0"
+description = "ربات رسمی موسسه تیزهوشان تیزگام در تلگرام"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "python-telegram-bot==22.8",
+    "python-dotenv==1.1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
