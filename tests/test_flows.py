@@ -24,6 +24,7 @@ from bot.constants import (
     CB_PRODUCTS_GRADE,
 )
 from tests.helpers import (
+    buttons,
     callbacks,
     last_answer,
     last_edit,
@@ -471,3 +472,34 @@ async def test_all_screens_have_navigation(bot_app):
         await tap(app, bot, data)
         edited = last_edit(bot)
         assert "main" in callbacks(edited["reply_markup"]), f"بدون منوی اصلی: {data}"
+
+
+# ---------------------------------------------------------------------------
+# استایل دکمه‌ها (Bot API 9.4+)
+# ---------------------------------------------------------------------------
+
+
+async def test_button_styles(bot_app):
+    """دکمه‌های اقدام سبز و دکمه‌ی خطر قرمز هستند؛ ناوبری بدون استایل."""
+    app, bot = bot_app
+
+    # لینک آپارات در نمونه کلاس → سبز
+    await tap(app, bot, "cls:g:6:math")
+    markup = last_edit(bot)["reply_markup"]
+    url_btn = next(b for b in buttons(markup) if b.url)
+    assert url_btn.style == "success"
+    back_btn = next(b for b in buttons(markup) if b.callback_data == "cls:g:6")
+    assert back_btn.style is None  # ناوبری = رنگ پیش‌فرض
+
+    # لینک سفارش محصول → سبز
+    await tap(app, bot, "prod:g:6:tezpack")
+    markup = last_edit(bot)["reply_markup"]
+    assert next(b for b in buttons(markup) if b.url).style == "success"
+
+    # دکمه‌ی خطر در تأیید پاک‌کردن آمار → قرمز
+    await tap(app, bot, "adm:stats:rst")
+    markup = last_edit(bot)["reply_markup"]
+    danger = next(b for b in buttons(markup) if b.callback_data == "adm:stats:rst:yes")
+    assert danger.style == "danger"
+    cancel = next(b for b in buttons(markup) if b.callback_data == "adm:stats")
+    assert cancel.style is None
