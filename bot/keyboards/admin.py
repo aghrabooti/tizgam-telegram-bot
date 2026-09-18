@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional, Sequence
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardMarkup
 
 from bot.constants import (
     BTN_STYLE_DANGER,
@@ -14,22 +14,22 @@ from bot.constants import (
     CB_ADMIN_STATS_RESET_ASK,
     CB_ADMIN_STATS_RESET_YES,
 )
-from bot.keyboards.common import build
+from bot.keyboards.common import build, button
 
 
 def menu() -> InlineKeyboardMarkup:
     """منوی اصلی پنل مدیریت."""
     rows = [
-        [InlineKeyboardButton("📊 آمار و گزارش‌ها", callback_data=CB_ADMIN_STATS)],
-        [InlineKeyboardButton("✏️ ویرایش محتوا", callback_data=CB_ADMIN_EDIT)],
+        [button("📊 آمار و گزارش‌ها", callback_data=CB_ADMIN_STATS)],
+        [button("✏️ ویرایش محتوا", callback_data=CB_ADMIN_EDIT)],
     ]
     return build(rows)
 
 
 def stats() -> InlineKeyboardMarkup:
     rows = [
-        [InlineKeyboardButton("🔄 به‌روزرسانی", callback_data=CB_ADMIN_STATS)],
-        [InlineKeyboardButton("🗑 پاک کردن آمار", callback_data=CB_ADMIN_STATS_RESET_ASK)],
+        [button("🔄 به‌روزرسانی", callback_data=CB_ADMIN_STATS)],
+        [button("🗑 پاک کردن آمار", callback_data=CB_ADMIN_STATS_RESET_ASK)],
     ]
     return build(rows, back_to=CB_ADMIN)
 
@@ -38,13 +38,13 @@ def stats_reset_confirm() -> InlineKeyboardMarkup:
     """تأیید پاک‌کردن آمار؛ دکمه‌ی خطر به‌صورت قرمز (danger) است (Bot API 9.4+)."""
     rows = [
         [
-            InlineKeyboardButton(
+            button(
                 "✅ بله، پاک شود",
                 callback_data=CB_ADMIN_STATS_RESET_YES,
                 style=BTN_STYLE_DANGER,
             )
         ],
-        [InlineKeyboardButton("❌ انصراف", callback_data=CB_ADMIN_STATS)],
+        [button("❌ انصراف", callback_data=CB_ADMIN_STATS)],
     ]
     return build(rows, back_to=CB_ADMIN)
 
@@ -52,7 +52,7 @@ def stats_reset_confirm() -> InlineKeyboardMarkup:
 def edit_groups(groups: Sequence[tuple[str, str]]) -> InlineKeyboardMarkup:
     """لیست گروه‌های محتوایی؛ هر عضو: (عنوان, callback)."""
     rows = [
-        [InlineKeyboardButton(title, callback_data=callback)]
+        [button(title, callback_data=callback)]
         for title, callback in groups
     ]
     return build(rows, back_to=CB_ADMIN)
@@ -61,7 +61,7 @@ def edit_groups(groups: Sequence[tuple[str, str]]) -> InlineKeyboardMarkup:
 def edit_fields(fields: Sequence[tuple[str, str]]) -> InlineKeyboardMarkup:
     """لیست فیلدهای یک گروه؛ هر عضو: (عنوان, callback)."""
     rows = [
-        [InlineKeyboardButton(title, callback_data=callback)]
+        [button(title, callback_data=callback)]
         for title, callback in fields
     ]
     return build(rows, back_to=CB_ADMIN_EDIT)
@@ -73,15 +73,15 @@ def field_detail(
     back_to: str,
 ) -> InlineKeyboardMarkup:
     """صفحه‌ی جزئیات یک فیلد."""
-    rows = [[InlineKeyboardButton("✏️ تغییر مقدار", callback_data=set_callback)]]
+    rows = [[button("✏️ تغییر مقدار", callback_data=set_callback)]]
     if revert_callback is not None:
         rows.append(
-            [InlineKeyboardButton("↩️ بازگردانی پیش‌فرض", callback_data=revert_callback)]
+            [button("↩️ بازگردانی پیش‌فرض", callback_data=revert_callback)]
         )
     return build(rows, back_to=back_to)
 
 
 def edit_prompt(cancel_callback: str, back_to: str) -> InlineKeyboardMarkup:
     """صفحه‌ی «مقدار جدید را بفرستید»."""
-    rows = [[InlineKeyboardButton("❌ انصراف", callback_data=cancel_callback)]]
+    rows = [[button("❌ انصراف", callback_data=cancel_callback)]]
     return build(rows, back_to=back_to)
