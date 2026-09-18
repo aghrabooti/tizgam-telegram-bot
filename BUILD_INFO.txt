@@ -1,6 +1,6 @@
 Tizgam Telegram Bot - Build Info
 ================================
-Build time : 2026-09-18 11:33
+Build time : 2026-09-18 11:51
 Files      : 43
 Admin panel: YES
 Verify     : this archive must contain bot/handlers/admin.py,
