@@ -1,0 +1,21 @@
+# محرمانه
+.env
+
+# پایتون
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ابزارها
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# سیستم‌عامل / ادیتور
+.DS_Store
+.idea/
+.vscode/
