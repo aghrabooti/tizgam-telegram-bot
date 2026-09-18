@@ -81,3 +81,33 @@ PATTERN_EXAMS = rf"^{re.escape(CB_EXAMS)}$"
 PATTERN_EXAMS_GRADE = r"^exm:g:(?P<grade_id>[^:]+)$"
 PATTERN_EXAM_DETAIL = r"^exm:g:(?P<grade_id>[^:]+):(?P<exam_id>[^:]+)$"
 PATTERN_MEDIA = rf"^{re.escape(CB_MEDIA)}$"
+
+# ---------------------------------------------------------------------------
+# پنل مدیریت
+# ---------------------------------------------------------------------------
+# فقط برای مدیران (ADMIN_IDS)؛ /admin یا /id برای دیدن شناسه‌ی کاربری.
+
+CB_ADMIN = "adm"
+CB_ADMIN_STATS = "adm:stats"
+CB_ADMIN_STATS_RESET_ASK = "adm:stats:rst"
+CB_ADMIN_STATS_RESET_YES = "adm:stats:rst:yes"
+CB_ADMIN_EDIT = "adm:edit"
+CB_ADMIN_EDIT_GROUP = "adm:edit:g:{group_id}"
+CB_ADMIN_EDIT_FIELD = "adm:edit:f:{field_key}"
+CB_ADMIN_EDIT_SET = "adm:edit:s:{field_key}"
+CB_ADMIN_EDIT_REVERT = "adm:edit:d:{field_key}"
+CB_ADMIN_EDIT_CANCEL = "adm:edit:c"
+
+# کلید state ویرایش نیمه‌تمام در context.user_data
+EDIT_STATE_KEY = "admin_edit_field"
+
+PATTERN_ADMIN = rf"^{re.escape(CB_ADMIN)}$"
+PATTERN_ADMIN_STATS = rf"^{re.escape(CB_ADMIN_STATS)}$"
+PATTERN_ADMIN_STATS_RESET_ASK = rf"^{re.escape(CB_ADMIN_STATS_RESET_ASK)}$"
+PATTERN_ADMIN_STATS_RESET_YES = rf"^{re.escape(CB_ADMIN_STATS_RESET_YES)}$"
+PATTERN_ADMIN_EDIT = rf"^{re.escape(CB_ADMIN_EDIT)}$"
+PATTERN_ADMIN_EDIT_GROUP = r"^adm:edit:g:(?P<group_id>[^:]+)$"
+PATTERN_ADMIN_EDIT_FIELD = r"^adm:edit:f:(?P<field_key>.+)$"
+PATTERN_ADMIN_EDIT_SET = r"^adm:edit:s:(?P<field_key>.+)$"
+PATTERN_ADMIN_EDIT_REVERT = r"^adm:edit:d:(?P<field_key>.+)$"
+PATTERN_ADMIN_EDIT_CANCEL = r"^adm:edit:c$"
