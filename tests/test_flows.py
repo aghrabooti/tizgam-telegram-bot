@@ -503,3 +503,48 @@ async def test_button_styles(bot_app):
     assert danger.style == "danger"
     cancel = next(b for b in buttons(markup) if b.callback_data == "adm:stats")
     assert cancel.style is None
+
+
+# ---------------------------------------------------------------------------
+# سازگاری استایل دکمه‌ها با نسخه‌های قدیمی‌تر کتابخانه
+# ---------------------------------------------------------------------------
+
+
+def test_button_style_compat_supported():
+    """در محیطی که PTB از style پشتیبانی می‌کند، استایل اعمال می‌شود."""
+    from bot.keyboards.common import SUPPORTS_BUTTON_STYLES, button
+
+    b = button("تست", callback_data="x", style="success")
+    if SUPPORTS_BUTTON_STYLES:
+        assert b.style == "success"
+    else:  # محیط تست بدون پشتیبانی
+        assert b.style is None
+
+
+def test_button_drops_style_when_unsupported(monkeypatch):
+    """اگر کتابخانه style را نشناسد، دکمه بدون استایل و بدون خطا ساخته می‌شود."""
+    import bot.keyboards.common as common
+
+    monkeypatch.setattr(common, "SUPPORTS_BUTTON_STYLES", False)
+    b = common.button("تست", callback_data="x", style="danger")
+    assert b.style is None
+    b2 = common.button("لینک", url="https://t.me/x", style="success")
+    assert b2.url == "https://t.me/x"
+
+
+async def test_navigation_survives_analytics_failure(bot_app, monkeypatch):
+    """اگر ثبت آمار خطا بدهد، ناوبری (و دکمه‌ی بازگشت) نباید بشکند."""
+    from bot.services import analytics as analytics_mod
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("DB down")
+
+    monkeypatch.setattr(analytics_mod, "log_screen", boom)
+    app, bot = bot_app
+
+    await tap(app, bot, "cls")
+    await tap(app, bot, "cls:g:6")
+    await tap(app, bot, "cls:g:6:math")
+    await tap(app, bot, "cls:g:6")   # 🔙 بازگشت — باید کار کند
+    edited = last_edit(bot)
+    assert edited["text"] == content.CLASSES_GRADE_TEXT.format(grade_title="پایه ششم")
