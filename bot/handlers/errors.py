@@ -67,7 +67,11 @@ async def fallback_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 def register_error_handlers(app: Application) -> None:
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, fallback_text))
+    # fallback در گروه ۱ ثبت می‌شود تا هندلرهای گروه ۰ (مانند دریافت مقدار
+    # جدید از مدیر در حالت ویرایش) بتوانند پیام را ابتدا بررسی کنند.
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, fallback_text), group=1
+    )
     # آخرین هندلر callback (بدون pattern) → فقط callbackهای ناشناخته
     app.add_handler(CallbackQueryHandler(unknown_callback))
     app.add_error_handler(on_error)
