@@ -18,3 +18,17 @@ def esc(value: object) -> str:
 def bullet(items: list[str] | tuple[str, ...], marker: str = "•") -> str:
     """یک لیست نشانه‌دار می‌سازد."""
     return "\n".join(f"{marker} {item}" for item in items)
+
+
+_FA_DIGITS = str.maketrans("0123456789,", "۰۱۲۳۴۵۶۷۸۹٬")
+
+
+def fa_num(value: int) -> str:
+    """عدد را با جداکننده‌ی هزارگان و ارقام فارسی نمایش می‌دهد."""
+    return f"{value:,}".translate(_FA_DIGITS)
+
+
+def truncate(value: str, limit: int) -> str:
+    """متن را برای نمایش در دکمه/خلاصه کوتاه می‌کند."""
+    value = str(value)
+    return value if len(value) <= limit else value[: max(limit - 1, 1)] + "…"
