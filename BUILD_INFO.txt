@@ -1,0 +1,7 @@
+Tizgam Telegram Bot - Build Info
+================================
+Build time : 2026-09-18 10:56
+Admin panel: YES
+Verify     : this archive must contain bot/handlers/admin.py,
+             bot/services/analytics.py and tests/test_admin.py.
+             If they are missing, you downloaded a stale copy!
