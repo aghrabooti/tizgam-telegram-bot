@@ -29,6 +29,7 @@ from telegram.ext import ContextTypes
 
 from bot.config import content
 from bot.keyboards import menus
+from bot.services import analytics
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,9 @@ async def render_screen(
 
     if answer_callback:
         await query.answer()
+
+    # ثبت آمار: هر ناوبری با دکمه‌ی inline یک «نمایش صفحه» است
+    analytics.log_screen(query.from_user.id, query.data)
 
     try:
         await query.edit_message_text(
