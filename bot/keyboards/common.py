@@ -13,7 +13,7 @@ from typing import Callable, Optional, Sequence
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.config import content
-from bot.constants import CB_MAIN
+from bot.constants import BTN_STYLE_PRIMARY, CB_MAIN
 
 # آیا نسخه‌ی نصب‌شده‌ی python-telegram-bot از «استایل دکمه» (Bot API 9.4)
 # پشتیبانی می‌کند؟ در نسخه‌های قدیمی‌تر این پارامتر وجود ندارد و اگر مستقیم
@@ -27,12 +27,14 @@ except (TypeError, ValueError):  # pragma: no cover - نسخه‌های بسیا
 
 
 def button(
-    text: str, *, style: Optional[str] = None, **kwargs
+    text: str, *, style: Optional[str] = BTN_STYLE_PRIMARY, **kwargs
 ) -> InlineKeyboardButton:
     """ساخت دکمه‌ی inline با پشتیبانی خودکار از استایل (Bot API 9.4+).
 
-    اگر کتابخانه‌ی نصب‌شده ``style`` را نشناسد، دکمه بدون استایل (رنگ
-    پیش‌فرض آبی) ساخته می‌شود تا ربات روی هر محیطی بدون خطا کار کند.
+    پیش‌فرض ``primary`` (آبی) است تا دکمه روی پیام رنگی شیشه‌ای/نامرئی
+    نشود. برای لینک‌ها ``success`` و برای عملیات خطرناک ``danger`` بدهید.
+    اگر کتابخانه‌ی نصب‌شده ``style`` را نشناسد، دکمه بدون استایل ساخته
+    می‌شود تا ربات روی هر محیطی بدون خطا کار کند.
     """
     if style is not None and SUPPORTS_BUTTON_STYLES:
         return InlineKeyboardButton(text, style=style, **kwargs)
@@ -41,12 +43,12 @@ def button(
 
 def back_button(callback_data: str) -> InlineKeyboardButton:
     """دکمه‌ی بازگشت به مرحله‌ی قبل (callback صفحه‌ی والد)."""
-    return InlineKeyboardButton(content.LBL_BACK, callback_data=callback_data)
+    return button(content.LBL_BACK, callback_data=callback_data)
 
 
 def home_button() -> InlineKeyboardButton:
     """دکمه‌ی بازگشت به منوی اصلی."""
-    return InlineKeyboardButton(content.LBL_HOME, callback_data=CB_MAIN)
+    return button(content.LBL_HOME, callback_data=CB_MAIN)
 
 
 def nav_row(back_to: Optional[str] = None) -> list[InlineKeyboardButton]:
@@ -57,7 +59,7 @@ def nav_row(back_to: Optional[str] = None) -> list[InlineKeyboardButton]:
             فقط دکمه‌ی «بازگشت به منوی اصلی» نمایش داده می‌شود.
     """
     if back_to is None:
-        return [InlineKeyboardButton(content.LBL_BACK_TO_MAIN, callback_data=CB_MAIN)]
+        return [button(content.LBL_BACK_TO_MAIN, callback_data=CB_MAIN)]
     return [back_button(back_to), home_button()]
 
 
@@ -82,7 +84,7 @@ def grade_selection(
     """
     grades = tuple(grades) or content.GRADES
     rows = [
-        [InlineKeyboardButton(f"{g.emoji} {g.title}", callback_data=callback_of_grade(g.id))]
+        [button(f"{g.emoji} {g.title}", callback_data=callback_of_grade(g.id))]
         for g in grades
     ]
     return build(rows)

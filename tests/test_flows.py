@@ -480,8 +480,13 @@ async def test_all_screens_have_navigation(bot_app):
 
 
 async def test_button_styles(bot_app):
-    """دکمه‌های اقدام سبز و دکمه‌ی خطر قرمز هستند؛ ناوبری بدون استایل."""
+    """دکمه‌های اقدام سبز، خطر قرمز و منو/ناوبری آبی هستند (نه شیشه‌ای)."""
     app, bot = bot_app
+    await send_command(app, bot, "/start")
+
+    # منوی اصلی → آبی (نه شیشه‌ای شفاف روی پیام رنگی)
+    markup = last_send(bot)["reply_markup"]
+    assert all(b.style == "primary" for b in buttons(markup))
 
     # لینک آپارات در نمونه کلاس → سبز
     await tap(app, bot, "cls:g:6:math")
@@ -489,7 +494,12 @@ async def test_button_styles(bot_app):
     url_btn = next(b for b in buttons(markup) if b.url)
     assert url_btn.style == "success"
     back_btn = next(b for b in buttons(markup) if b.callback_data == "cls:g:6")
-    assert back_btn.style is None  # ناوبری = رنگ پیش‌فرض
+    assert back_btn.style == "primary"  # ناوبری = آبی، نه شیشه‌ای/شفاف
+
+    # گفت‌وگو با پشتیبانی → لینک سبز
+    await tap(app, bot, "sup:tg")
+    markup = last_edit(bot)["reply_markup"]
+    assert next(b for b in buttons(markup) if b.url).style == "success"
 
     # لینک سفارش محصول → سبز
     await tap(app, bot, "prod:g:6:tezpack")
@@ -502,7 +512,7 @@ async def test_button_styles(bot_app):
     danger = next(b for b in buttons(markup) if b.callback_data == "adm:stats:rst:yes")
     assert danger.style == "danger"
     cancel = next(b for b in buttons(markup) if b.callback_data == "adm:stats")
-    assert cancel.style is None
+    assert cancel.style == "primary"
 
 
 # ---------------------------------------------------------------------------
@@ -515,10 +525,13 @@ def test_button_style_compat_supported():
     from bot.keyboards.common import SUPPORTS_BUTTON_STYLES, button
 
     b = button("تست", callback_data="x", style="success")
+    default = button("منو", callback_data="main")
     if SUPPORTS_BUTTON_STYLES:
         assert b.style == "success"
+        assert default.style == "primary"
     else:  # محیط تست بدون پشتیبانی
         assert b.style is None
+        assert default.style is None
 
 
 def test_button_drops_style_when_unsupported(monkeypatch):

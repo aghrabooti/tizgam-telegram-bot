@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
 from bot.config import content
 from bot.constants import (
+    BTN_STYLE_SUCCESS,
     CB_SUPPORT_CALL,
     CB_SUPPORT_TELEGRAM,
     PATTERN_SUPPORT,
     PATTERN_SUPPORT_CALL,
     PATTERN_SUPPORT_TELEGRAM,
 )
-from bot.keyboards.common import build
+from bot.keyboards.common import build, button
 from bot.services import navigation
 
 
@@ -25,9 +26,9 @@ async def show_support_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         text=content.SUPPORT_MENU_TEXT,
         reply_markup=build(
             [
-                [InlineKeyboardButton(content.LBL_SUPPORT_CALL, callback_data=CB_SUPPORT_CALL)],
+                [button(content.LBL_SUPPORT_CALL, callback_data=CB_SUPPORT_CALL)],
                 [
-                    InlineKeyboardButton(
+                    button(
                         content.LBL_SUPPORT_TELEGRAM, callback_data=CB_SUPPORT_TELEGRAM
                     )
                 ],
@@ -55,9 +56,10 @@ async def show_telegram_support(update: Update, context: ContextTypes.DEFAULT_TY
         reply_markup=build(
             [
                 [
-                    InlineKeyboardButton(
+                    button(
                         content.LBL_SUPPORT_CHAT,
                         url=content.SUPPORT.telegram_url,
+                        style=BTN_STYLE_SUCCESS,
                     )
                 ]
             ]
