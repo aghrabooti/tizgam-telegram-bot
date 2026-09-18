@@ -97,6 +97,12 @@ CB_ADMIN_EDIT_FIELD = "adm:edit:f:{field_key}"
 CB_ADMIN_EDIT_SET = "adm:edit:s:{field_key}"
 CB_ADMIN_EDIT_REVERT = "adm:edit:d:{field_key}"
 CB_ADMIN_EDIT_CANCEL = "adm:edit:c"
+CB_ADMIN_USERS = "adm:users"
+CB_ADMIN_USERS_CSV = "adm:users:csv"
+CB_ADMIN_LOGS = "adm:logs"
+CB_ADMIN_LOG_FILE = "adm:logs:file"
+CB_ADMIN_DB = "adm:db"
+CB_ADMIN_DB_FILE = "adm:db:file"
 
 # کلید state ویرایش نیمه‌تمام در context.user_data
 EDIT_STATE_KEY = "admin_edit_field"
@@ -111,14 +117,18 @@ PATTERN_ADMIN_EDIT_FIELD = r"^adm:edit:f:(?P<field_key>.+)$"
 PATTERN_ADMIN_EDIT_SET = r"^adm:edit:s:(?P<field_key>.+)$"
 PATTERN_ADMIN_EDIT_REVERT = r"^adm:edit:d:(?P<field_key>.+)$"
 PATTERN_ADMIN_EDIT_CANCEL = r"^adm:edit:c$"
+PATTERN_ADMIN_USERS = r"^adm:users$"
+PATTERN_ADMIN_USERS_CSV = r"^adm:users:csv$"
+PATTERN_ADMIN_LOGS = r"^adm:logs$"
+PATTERN_ADMIN_LOG_FILE = r"^adm:logs:file$"
+PATTERN_ADMIN_DB = r"^adm:db$"
+PATTERN_ADMIN_DB_FILE = r"^adm:db:file$"
 
 # ---------------------------------------------------------------------------
 # استایل دکمه‌ها (Bot API 9.4+ / فوریه ۲۰۲۶)
-# فقط سه استایل مجاز است. اگر style فرستاده نشود، کلاینت دکمه‌ی شفاف/شیشه‌ای
-# می‌سازد که روی پیام رنگی تقریباً نامرئی است؛ بنابراین همه‌ی دکمه‌ها
-# باید یکی از این سه رنگ را داشته باشند.
+# فقط سه استایل مجاز است؛ کلاینت‌های قدیمی، دکمه را با رنگ پیش‌فرض می‌بینند.
 # ---------------------------------------------------------------------------
 
-BTN_STYLE_PRIMARY = "primary"  # آبی — منو، ناوبری و گزینه‌های خنثی
+BTN_STYLE_PRIMARY = "primary"  # آبی (پیش‌فرض)
 BTN_STYLE_SUCCESS = "success"  # سبز — اقدام‌های اصلی مثبت (لینک‌ها و سفارش‌ها)
 BTN_STYLE_DANGER = "danger"    # قرمز — عملیات خطرناک/بازگشت‌ناپذیر

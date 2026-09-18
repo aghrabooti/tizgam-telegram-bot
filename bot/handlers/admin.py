@@ -4,10 +4,13 @@
 دسترسی: فقط کاربران موجود در ``ADMIN_IDS`` (فایل .env).
 
 امکانات:
-- ``/admin`` → منوی پنل (آمار / ویرایش محتوا)
+- ``/admin`` → منوی پنل (آمار / کاربران / لاگ‌ها / دیتابیس / ویرایش محتوا)
 - ``/id``    → نمایش شناسه‌ی کاربری (برای پیدا کردن ADMIN_IDS)
 - 📊 آمار: تعداد کاربران، تعداد /start، تعداد نمایش هر صفحه (کل و امروز)
   + پربازدیدترین صفحه‌ها + پاک کردن آمار (با تأیید)
+- 👥 کاربران: خلاصه + آخرین شماره‌های ثبت‌شده + خروجی CSV کامل
+- 📋 لاگ‌ها: آخرین خطوط فایل لاگ + دریافت فایل کامل لاگ
+- 💾 دیتابیس: وضعیت فایل + دریافت نسخه‌ی پشتیبان (SQLite snapshot)
 - ✏️ ویرایش محتوا: همه‌ی متن‌ها و لینک‌های placeholder (رابط کاربری
   چندمرحله‌ای + دریافت مقدار جدید به‌صورت پیام)
 
@@ -18,7 +21,13 @@
 
 from __future__ import annotations
 
+import io
 import logging
+import os
+import sqlite3
+import tempfile
+from datetime import datetime
+from pathlib import Path
 
 from telegram import Update
 from telegram.constants import ParseMode
@@ -41,15 +50,21 @@ from bot.constants import (
     CB_ADMIN_EDIT_SET,
     EDIT_STATE_KEY,
     PATTERN_ADMIN,
+    PATTERN_ADMIN_DB,
+    PATTERN_ADMIN_DB_FILE,
     PATTERN_ADMIN_EDIT,
     PATTERN_ADMIN_EDIT_CANCEL,
     PATTERN_ADMIN_EDIT_FIELD,
     PATTERN_ADMIN_EDIT_GROUP,
     PATTERN_ADMIN_EDIT_REVERT,
     PATTERN_ADMIN_EDIT_SET,
+    PATTERN_ADMIN_LOG_FILE,
+    PATTERN_ADMIN_LOGS,
     PATTERN_ADMIN_STATS,
     PATTERN_ADMIN_STATS_RESET_ASK,
     PATTERN_ADMIN_STATS_RESET_YES,
+    PATTERN_ADMIN_USERS,
+    PATTERN_ADMIN_USERS_CSV,
 )
 from bot.keyboards import admin as keyboards
 from bot.services import analytics, content_manager, navigation
@@ -406,6 +421,212 @@ async def admin_edit_text(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 # ---------------------------------------------------------------------------
+# کاربران و شماره‌های تماس
+# ---------------------------------------------------------------------------
+
+
+async def admin_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """خلاصه‌ی کاربران + آخرین شماره‌های ثبت‌شده."""
+    if not await _require_admin(update):
+        return
+    await navigation.render_screen(
+        update, context, text=_users_text(), reply_markup=keyboards.users()
+    )
+
+
+def _users_text() -> str:
+    """متن صفحه‌ی کاربران (در ربات و پیش‌نمایش وب مشترک است)."""
+    s = analytics.summary()
+    lines = [
+        "👥 <b>کاربران و شماره‌های تماس</b>",
+        "",
+        f"📊 ثبت‌شده: <b>{fa_num(s['users_total'])}</b>"
+        f" — امروز: {fa_num(s['users_today'])}",
+        f"📱 دارای شماره: <b>{fa_num(analytics.users_with_phone_count())}</b>",
+        "",
+        "<b>آخرین کاربران:</b>",
+    ]
+    recent = analytics.recent_users(10)
+    if recent:
+        for u in recent:
+            name = esc(u["first_name"] or "—")
+            phone = f"<code>{esc(u['phone'])}</code>" if u["phone"] else "بدون شماره"
+            username = f" — @{esc(u['username'])}" if u["username"] else ""
+            lines.append(f"• {name} — {phone}{username}")
+    else:
+        lines.append("• هنوز کاربری ثبت نشده است.")
+    lines += ["", "برای لیست کامل با همه‌ی فیلدها، فایل CSV را دریافت کنید:"]
+    return "\n".join(lines)
+
+
+async def admin_users_csv(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """ارسال خروجی CSV کامل کاربران به‌صورت فایل."""
+    if not await _require_admin(update):
+        return
+    csv_bytes = ("\ufeff" + analytics.users_csv()).encode("utf-8")  # BOM برای Excel
+    await update.callback_query.answer("در حال ساخت فایل…")
+    await context.bot.send_document(
+        chat_id=update.effective_chat.id,
+        document=io.BytesIO(csv_bytes),
+        filename="tizgam-users.csv",
+        caption="👥 لیست کامل کاربران و شماره‌های تماس",
+    )
+
+
+# ---------------------------------------------------------------------------
+# لاگ‌ها و دیتابیس (گزارش و دریافت فایل)
+# ---------------------------------------------------------------------------
+
+# پارامترهای دم‌کردن انتهای فایل لاگ (همیشه محدود تا پیام طولانی نشود)
+LOG_TAIL_LINES = 25
+LOG_TAIL_BYTES = 8_000
+
+
+def _read_log_tail(path: Path, max_bytes: int = LOG_TAIL_BYTES,
+                   max_lines: int = LOG_TAIL_LINES) -> list[str]:
+    """آخرین خطوط فایل لاگ؛ در نبود/خطای فایل، لیست خالی برمی‌گردد."""
+    try:
+        with path.open("rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            size = fh.tell()
+            fh.seek(max(0, size - max_bytes))
+            data = fh.read()
+    except OSError:
+        return []
+    return data.decode("utf-8", errors="replace").splitlines()[-max_lines:]
+
+
+def _human_size(num_bytes: int) -> str:
+    """حجم فایل به شکل خوانا (کیلوبایت/مگابایت)."""
+    if num_bytes >= 1024 * 1024:
+        return f"{fa_num(round(num_bytes / (1024 * 1024), 1))} مگابایت"
+    return f"{fa_num(max(1, round(num_bytes / 1024)))} کیلوبایت"
+
+
+def _logs_text() -> str:
+    """متن صفحه‌ی لاگ‌ها (در ربات و پیش‌نمایش وب مشترک است)."""
+    settings = get_settings()
+    path = Path(settings.log_file)
+    lines = _read_log_tail(path)
+    size = path.stat().st_size if path.exists() else 0
+    if lines:
+        tail = [f"آخرین {fa_num(len(lines))} خط:", ""]
+        tail += [f"<code>{esc(line)}</code>" for line in lines]
+    else:
+        tail = ["(فایل لاگ خالی است یا هنوز ساخته نشده است)"]
+    return "\n".join([
+        "📋 <b>گزارش لاگ ربات</b>",
+        "",
+        f"📁 مسیر: <code>{esc(path.name)}</code> — حجم: {_human_size(size)}",
+        "",
+        *tail,
+        "",
+        "برای دریافت کل فایل لاگ، دکمه‌ی زیر را بزنید.",
+    ])
+
+
+def _db_info_text() -> str:
+    """متن صفحه‌ی وضعیت دیتابیس (در ربات و پیش‌نمایش وب مشترک است)."""
+    settings = get_settings()
+    path = Path(settings.database_path)
+    size = path.stat().st_size if path.exists() else 0
+    s = analytics.summary()
+    return "\n".join([
+        "💾 <b>دیتابیس و پشتیبان</b>",
+        "",
+        f"📁 فایل: <code>{esc(path.name)}</code> — حجم: {_human_size(size)}",
+        f"👥 کاربران: <b>{fa_num(s['users_total'])}</b>"
+        f" — دارای شماره: {fa_num(analytics.users_with_phone_count())}",
+        f"👁 رویدادهای ثبت‌شده: <b>{fa_num(s['views_total'] + s['starts_total'])}</b>",
+        "",
+        "دکمه‌ی زیر یک نسخه‌ی پشتیبان سازگار با SQLite از دیتابیس می‌سازد"
+        " و به‌صورت فایل می‌فرستد؛ با آن می‌توان دیتابیس را روی هر سرور"
+        " دیگری بازیابی کرد.",
+    ])
+
+
+def _snapshot_db() -> bytes:
+    """نسخه‌ی پشتیبان امن از دیتابیس (online backup رسمی SQLite).
+
+    برخلاف کپی مستقیم فایل، حتی اگر هم‌زمان نوشتنی در جریان باشد
+    خروجی سالم و بدون خرابی است.
+    """
+    settings = get_settings()
+    fd, tmp_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    try:
+        src = sqlite3.connect(settings.database_path)
+        try:
+            dst = sqlite3.connect(tmp_path)
+            try:
+                src.backup(dst)
+            finally:
+                dst.close()
+        finally:
+            src.close()
+        return Path(tmp_path).read_bytes()
+    finally:
+        os.unlink(tmp_path)
+
+
+async def admin_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """صفحه‌ی لاگ‌ها: آخرین خطوط + دکمه‌ی دریافت فایل کامل."""
+    if not await _require_admin(update):
+        return
+    await navigation.render_screen(
+        update, context, text=_logs_text(), reply_markup=keyboards.logs()
+    )
+
+
+async def admin_log_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """ارسال فایل کامل لاگ به مدیر."""
+    if not await _require_admin(update):
+        return
+    path = Path(get_settings().log_file)
+    if not path.exists():
+        await update.callback_query.answer(
+            "هنوز فایل لاگی ساخته نشده است.", show_alert=True
+        )
+        return
+    await update.callback_query.answer("در حال ارسال فایل…")
+    await context.bot.send_document(
+        chat_id=update.effective_chat.id,
+        document=io.BytesIO(path.read_bytes()),
+        filename="tizgam-bot.log",
+        caption=f"📋 فایل کامل لاگ ربات ({_human_size(path.stat().st_size)})",
+    )
+
+
+async def admin_db(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """صفحه‌ی وضعیت دیتابیس + دکمه‌ی دریافت پشتیبان."""
+    if not await _require_admin(update):
+        return
+    await navigation.render_screen(
+        update, context, text=_db_info_text(), reply_markup=keyboards.db()
+    )
+
+
+async def admin_db_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """ارسال نسخه‌ی پشتیبان دیتابیس به مدیر."""
+    if not await _require_admin(update):
+        return
+    if not Path(get_settings().database_path).exists():
+        await update.callback_query.answer(
+            "فایل دیتابیس وجود ندارد.", show_alert=True
+        )
+        return
+    await update.callback_query.answer("در حال ساخت پشتیبان…")
+    stamp = datetime.now().strftime("%Y%m%d-%H%M")
+    await context.bot.send_document(
+        chat_id=update.effective_chat.id,
+        document=io.BytesIO(_snapshot_db()),
+        filename=f"tizgam-backup-{stamp}.db",
+        caption="💾 نسخه‌ی پشتیبان دیتابیس (SQLite) — برای بازیابی، فایل را"
+        " جایگزین data/tizgam.db کنید و ربات را ری‌استارت کنید.",
+    )
+
+
+# ---------------------------------------------------------------------------
 # ثبت
 # ---------------------------------------------------------------------------
 
@@ -438,6 +659,17 @@ def register(app: Application) -> None:
     app.add_handler(
         CallbackQueryHandler(admin_edit_revert, pattern=PATTERN_ADMIN_EDIT_REVERT)
     )
+
+    app.add_handler(CallbackQueryHandler(admin_users, pattern=PATTERN_ADMIN_USERS))
+    app.add_handler(
+        CallbackQueryHandler(admin_users_csv, pattern=PATTERN_ADMIN_USERS_CSV)
+    )
+    app.add_handler(CallbackQueryHandler(admin_logs, pattern=PATTERN_ADMIN_LOGS))
+    app.add_handler(
+        CallbackQueryHandler(admin_log_file, pattern=PATTERN_ADMIN_LOG_FILE)
+    )
+    app.add_handler(CallbackQueryHandler(admin_db, pattern=PATTERN_ADMIN_DB))
+    app.add_handler(CallbackQueryHandler(admin_db_file, pattern=PATTERN_ADMIN_DB_FILE))
 
     # دریافت مقدار جدید مدیر (گروه ۰؛ فقط وقتی state ویرایش فعال است مصرف می‌کند)
     app.add_handler(
