@@ -12,6 +12,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.config import content
 from bot.constants import (
+    BTN_STYLE_SUCCESS,
     CB_CLASS_SUBJECT,
     CB_CLASSES_GRADE,
     CB_EXAM_DETAIL,
@@ -35,17 +36,24 @@ def content_section(
     section: content.ContentSection,
     extra_rows: Sequence[Sequence[InlineKeyboardButton]] = (),
 ) -> InlineKeyboardMarkup:
-    """کیبورد یک بخش محتوایی: دکمه‌های URL آیتم‌ها + ناوبری."""
+    """کیبورد یک بخش محتوایی: دکمه‌های URL آیتم‌ها + ناوبری.
+
+    دکمه‌های لینک به‌صورت سبز (success) نمایش داده می‌شوند تا «اقدام اصلی»
+    بودن‌شان مشخص باشد (Bot API 9.4+).
+    """
     rows = [
-        [InlineKeyboardButton(item.label, url=item.url)]
+        [InlineKeyboardButton(item.label, url=item.url, style=BTN_STYLE_SUCCESS)]
         for item in section.items
     ]
     return build([*rows, *extra_rows])
 
 
 def link_detail(url: str, label: str, back_to: Optional[str]) -> InlineKeyboardMarkup:
-    """کیبورد صفحه‌ی جزئیات با یک دکمه‌ی URL + ناوبری."""
-    return build([[InlineKeyboardButton(label, url=url)]], back_to=back_to)
+    """کیبورد صفحه‌ی جزئیات با یک دکمه‌ی URL سبز + ناوبری."""
+    return build(
+        [[InlineKeyboardButton(label, url=url, style=BTN_STYLE_SUCCESS)]],
+        back_to=back_to,
+    )
 
 
 def class_subjects(grade: content.Grade) -> InlineKeyboardMarkup:

@@ -7,6 +7,7 @@ from typing import Optional, Sequence
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.constants import (
+    BTN_STYLE_DANGER,
     CB_ADMIN,
     CB_ADMIN_EDIT,
     CB_ADMIN_STATS,
@@ -34,8 +35,15 @@ def stats() -> InlineKeyboardMarkup:
 
 
 def stats_reset_confirm() -> InlineKeyboardMarkup:
+    """تأیید پاک‌کردن آمار؛ دکمه‌ی خطر به‌صورت قرمز (danger) است (Bot API 9.4+)."""
     rows = [
-        [InlineKeyboardButton("✅ بله، پاک شود", callback_data=CB_ADMIN_STATS_RESET_YES)],
+        [
+            InlineKeyboardButton(
+                "✅ بله، پاک شود",
+                callback_data=CB_ADMIN_STATS_RESET_YES,
+                style=BTN_STYLE_DANGER,
+            )
+        ],
         [InlineKeyboardButton("❌ انصراف", callback_data=CB_ADMIN_STATS)],
     ]
     return build(rows, back_to=CB_ADMIN)

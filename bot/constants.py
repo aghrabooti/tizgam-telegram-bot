@@ -111,3 +111,12 @@ PATTERN_ADMIN_EDIT_FIELD = r"^adm:edit:f:(?P<field_key>.+)$"
 PATTERN_ADMIN_EDIT_SET = r"^adm:edit:s:(?P<field_key>.+)$"
 PATTERN_ADMIN_EDIT_REVERT = r"^adm:edit:d:(?P<field_key>.+)$"
 PATTERN_ADMIN_EDIT_CANCEL = r"^adm:edit:c$"
+
+# ---------------------------------------------------------------------------
+# استایل دکمه‌ها (Bot API 9.4+ / فوریه ۲۰۲۶)
+# فقط سه استایل مجاز است؛ کلاینت‌های قدیمی، دکمه را با رنگ پیش‌فرض می‌بینند.
+# ---------------------------------------------------------------------------
+
+BTN_STYLE_PRIMARY = "primary"  # آبی (پیش‌فرض)
+BTN_STYLE_SUCCESS = "success"  # سبز — اقدام‌های اصلی مثبت (لینک‌ها و سفارش‌ها)
+BTN_STYLE_DANGER = "danger"    # قرمز — عملیات خطرناک/بازگشت‌ناپذیر
